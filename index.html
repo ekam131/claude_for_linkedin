@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn — 7 Days Series Generator (Powered by Claude)</title>
+<style>
+/* ------------- LinkedIn-faithful design tokens ------------- */
+:root {
+  --li-bg: #f4f2ee;
+  --li-card: #ffffff;
+  --li-blue: #0a66c2;
+  --li-blue-hover: #004182;
+  --li-blue-light: #e8f0fb;
+  --li-text: rgba(0,0,0,0.9);
+  --li-text-secondary: rgba(0,0,0,0.6);
+  --li-text-tertiary: rgba(0,0,0,0.45);
+  --li-border: rgba(0,0,0,0.08);
+  --li-border-strong: rgba(0,0,0,0.15);
+  --li-hover-bg: rgba(0,0,0,0.06);
+  --li-green: #057642;
+  --li-red: #cc1016;
+  --li-orange: #c37d16;
+  --li-purple: #7a3e98;
+
+  /* Claude brand */
+  --claude-orange: #cc785c;
+  --claude-orange-soft: #f4ddd0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: var(--li-bg);
+  color: var(--li-text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea { font-family: inherit; font-size: 14px; }
+
+/* ------------- LinkedIn top nav ------------- */
+.li-nav {
+  background: var(--li-card);
+  border-bottom: 1px solid var(--li-border);
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.li-nav-inner {
+  max-width: 1128px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.li-logo {
+  width: 34px;
+  height: 34px;
+  background: var(--li-blue);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -1px;
+}
+.li-search {
+  background: #edf3f8;
+  border-radius: 4px;
+  height: 34px;
+  width: 280px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 36px;
+  position: relative;
+  color: var(--li-text-secondary);
+  font-size: 14px;
+}
+.li-search::before {
+  content: "🔍";
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  filter: grayscale(1);
+}
+.li-nav-spacer { flex: 1; }
+.li-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 6px 16px;
+  color: var(--li-text-secondary);
+  cursor: pointer;
+  border-radius: 0;
+  font-size: 12px;
+}
+.li-nav-item.active { color: var(--li-text); border-bottom: 2px solid var(--li-text); }
+.li-nav-icon { font-size: 20px; line-height: 1; margin-bottom: 2px; }
+
+/* ------------- Three column layout ------------- */
+.li-page {
+  max-width: 1128px;
+  margin: 24px auto;
+  display: grid;
+  grid-template-columns: 225px 540px 300px;
+  gap: 24px;
+}
+
+/* Left sidebar */
+.li-side-card {
+  background: var(--li-card);
+  border: 1px solid var(--li-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.profile-card { text-align: center; }
+.profile-banner {
+  height: 56px;
+  background: linear-gradient(135deg, #a0b4cc, #8ba6c1);
+}
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #8b6f5f, #6a5345);
+  border-radius: 50%;
+  margin: -36px auto 8px;
+  border: 2px solid white;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 600;
+  font-size: 28px;
+  letter-spacing: -1px;
+}
+.profile-name {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 16px;
+  margin-top: 8px;
+}
+.profile-headline {
+  font-size: 12px;
+  color: var(--li-text-secondary);
+  padding: 4px 16px 12px;
+  line-height: 1.4;
+}
+.profile-location {
+  font-size: 12px;
+  color: var(--li-text-tertiary);
+  padding: 0 16px 12px;
+}
+.profile-divider { border-top: 1px solid var(--li-border); margin: 0 16px; }
+.profile-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+.profile-stat-label { color: var(--li-text-secondary); }
+.profile-stat-value { color: var(--li-blue); font-weight: 600; }
+.side-link-list { padding: 8px 0; }
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  color: var(--li-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+.side-link:hover { background: var(--li-hover-bg); color: var(--li-text); cursor: pointer; }
+.side-link-icon { width: 16px; text-align: center; }
+
+/* Main feed */
+.li-main { display: flex; flex-direction: column; gap: 8px; }
+
+/* Composer */
+.composer {
+  background: var(--li-card);
+  border: 1px solid var(--li-border);
+  border-radius: 8px;
+  padding: 12px 16px 4px;
+}
+.composer-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+.composer-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #8b6f5f, #6a5345);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 600;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.composer-input {
+  flex: 1;
+  height: 48px;
+  border-radius: 24px;
+  border: 1px solid var(--li-border-strong);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--li-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.composer-input:hover { background: var(--li-hover-bg); }
+
+.composer-actions {
+  display: flex;
+  justify-content: space-around;
+  padding: 4px 0 8px;
+}
+.composer-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 4px;
+  color: var(--li-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  position: relative;
+  transition: background 0.15s;
+}
+.composer-action:hover { background: var(--li-hover-bg); }
+.composer-action-icon {
+  font-size: 20px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.composer-action[data-type="video"] .composer-action-icon { color: #5f9b41; }
+.composer-action[data-type="photo"] .composer-action-icon { color: var(--li-blue); }
+.composer-action[data-type="article"] .composer-action-icon { color: var(--li-orange); }
+
+/* The 7 Days Series button — the new partner-integrated button */
+.composer-action.series-btn {
+  position: relative;
+  background: linear-gradient(180deg, transparent 0%, transparent 60%, rgba(204, 120, 92, 0.04) 100%);
+  border-radius: 4px;
+  padding-bottom: 4px;
+}
+.composer-action.series-btn .composer-action-icon { color: var(--claude-orange); }
+.composer-action.series-btn:hover {
+  background: rgba(204, 120, 92, 0.08);
+}
+.claude-footer {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--claude-orange);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.claude-glyph {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+}
+
+/* Feed posts */
+.feed-post {
+  background: var(--li-card);
+  border: 1px solid var(--li-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.post-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.post-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+.post-author { font-size: 14px; font-weight: 600; }
+.post-meta { font-size: 12px; color: var(--li-text-secondary); margin-top: 1px; }
+.post-time { font-size: 12px; color: var(--li-text-tertiary); margin-top: 1px; }
+.post-body { font-size: 14px; line-height: 1.5; color: var(--li-text); padding: 4px 0 8px; }
+
+/* Right sidebar */
+.news-card { padding: 12px 16px; }
+.news-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.news-item {
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.news-item:hover { background: var(--li-hover-bg); }
+.news-item-meta {
+  font-size: 12px;
+  color: var(--li-text-secondary);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.news-bullet {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background: var(--li-text-tertiary);
+  border-radius: 50%;
+  margin: 0 6px;
+  vertical-align: middle;
+}
+
+/* ------------- Modal system ------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--li-card);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 720px;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--li-border);
+}
+.modal-title-group { display: flex; align-items: center; gap: 12px; }
+.modal-title-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--claude-orange-soft);
+  display: grid;
+  place-items: center;
+  color: var(--claude-orange);
+}
+.modal-title { font-size: 18px; font-weight: 600; }
+.modal-subtitle { font-size: 12px; color: var(--li-text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+.modal-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--li-text-secondary);
+  font-size: 22px;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: var(--li-hover-bg); }
+.modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+.modal-footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--li-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.modal-footer-meta { font-size: 12px; color: var(--li-text-tertiary); }
+
+/* Form fields */
+.field { margin-bottom: 18px; }
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--li-text);
+  margin-bottom: 4px;
+}
+.field-help {
+  font-size: 12px;
+  color: var(--li-text-secondary);
+  margin-bottom: 6px;
+}
+.field-input, .field-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--li-border-strong);
+  border-radius: 4px;
+  background: var(--li-card);
+  color: var(--li-text);
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-input:focus, .field-textarea:focus {
+  outline: none;
+  border-color: var(--li-blue);
+  box-shadow: 0 0 0 1px var(--li-blue);
+}
+.field-textarea { min-height: 90px; resize: vertical; line-height: 1.5; }
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary { background: var(--li-blue); color: white; }
+.btn-primary:hover { background: var(--li-blue-hover); }
+.btn-primary:disabled { background: rgba(0,0,0,0.08); color: var(--li-text-tertiary); cursor: not-allowed; }
+.btn-secondary {
+  background: transparent;
+  color: var(--li-text);
+  border: 1px solid var(--li-border-strong);
+}
+.btn-secondary:hover { background: var(--li-hover-bg); }
+.btn-text { color: var(--li-blue); padding: 6px 12px; }
+.btn-text:hover { background: var(--li-blue-light); }
+
+/* ------------- Series workspace screen ------------- */
+.workspace-header { margin-bottom: 12px; }
+.workspace-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--li-text-secondary);
+  margin-top: 4px;
+}
+.workspace-meta-item { display: flex; gap: 4px; }
+.workspace-meta-item strong { color: var(--li-text); font-weight: 600; }
+
+.draft-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.draft-card {
+  background: var(--li-card);
+  border: 1px solid var(--li-border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.draft-card:hover {
+  border-color: var(--li-blue);
+  background: var(--li-blue-light);
+}
+.draft-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--claude-orange-soft);
+  color: var(--claude-orange);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.draft-info { flex: 1; min-width: 0; }
+.draft-title { font-size: 14px; font-weight: 600; color: var(--li-text); }
+.draft-status-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--li-text-secondary);
+  align-items: center;
+}
+.status-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.status-not-started { background: rgba(0,0,0,0.06); color: var(--li-text-secondary); }
+.status-in-progress { background: #fef3c7; color: #92400e; }
+.status-ready { background: #dbeafe; color: #1e40af; }
+.status-published { background: #dcfce7; color: var(--li-green); }
+.draft-arrow { color: var(--li-text-tertiary); font-size: 18px; }
+
+/* My Series tabs */
+.series-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--li-border);
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.series-tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--li-text-secondary);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.series-tab.active { color: var(--li-blue); border-bottom-color: var(--li-blue); }
+.series-tab:hover:not(.active) { color: var(--li-text); }
+.series-tab .tab-add {
+  background: var(--claude-orange-soft);
+  color: var(--claude-orange);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ------------- Single draft workflow screen ------------- */
+.draft-workflow-modal { max-width: 760px; }
+.workflow-progress {
+  display: flex;
+  gap: 6px;
+  padding: 12px 24px;
+  background: #fafaf9;
+  border-bottom: 1px solid var(--li-border);
+}
+.progress-step {
+  flex: 1;
+  height: 4px;
+  background: var(--li-border);
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+.progress-step.complete { background: var(--li-green); }
+.progress-step.active { background: var(--claude-orange); }
+
+.workflow-section {
+  border-bottom: 1px solid var(--li-border);
+  padding: 14px 0;
+}
+.workflow-section:last-child { border-bottom: none; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.section-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.06);
+  color: var(--li-text-secondary);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.section-num.complete { background: var(--li-green); color: white; }
+.section-num.active { background: var(--claude-orange); color: white; }
+.section-info { flex: 1; min-width: 0; }
+.section-title { font-size: 14px; font-weight: 600; }
+.section-help {
+  font-size: 12px;
+  color: var(--li-text-secondary);
+  margin-top: 1px;
+}
+.section-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.06);
+  color: var(--li-text-secondary);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.section-tag.optional { color: var(--li-text-secondary); }
+.section-tag.required { background: var(--claude-orange-soft); color: var(--claude-orange); }
+
+.section-body {
+  padding: 12px 0 0 40px;
+  display: none;
+}
+.section-body.open { display: block; }
+.section-body.always-on { display: block; padding-left: 40px; padding-top: 12px; }
+
+.topic-display {
+  background: #fafaf9;
+  border: 1px solid var(--li-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.topic-display strong { font-weight: 600; }
+
+.references-list { display: flex; flex-direction: column; gap: 6px; }
+.reference-row {
+  display: flex;
+  gap: 6px;
+}
+.reference-row input { flex: 1; }
+.add-ref-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--li-blue);
+  padding: 4px 0;
+}
+
+.visual-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+.visual-option {
+  border: 1px solid var(--li-border);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.visual-option:hover { border-color: var(--li-blue); background: var(--li-blue-light); }
+.visual-option.selected { border-color: var(--claude-orange); background: var(--claude-orange-soft); color: var(--claude-orange); }
+.visual-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+
+.generate-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+.generate-btn {
+  background: var(--claude-orange);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+.generate-btn:hover { background: #b8664a; }
+.generate-btn:disabled { background: rgba(0,0,0,0.08); color: var(--li-text-tertiary); cursor: not-allowed; }
+
+.draft-output {
+  background: #fafaf9;
+  border: 1px solid var(--li-border);
+  border-radius: 6px;
+  padding: 14px;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.draft-edit {
+  width: 100%;
+  min-height: 280px;
+  padding: 14px;
+  border: 1px solid var(--li-border-strong);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+  font-family: inherit;
+}
+.draft-edit:focus { outline: none; border-color: var(--li-blue); box-shadow: 0 0 0 1px var(--li-blue); }
+
+.review-results { display: flex; flex-direction: column; gap: 8px; }
+.review-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--li-border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.review-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+}
+.review-pass .review-icon { background: var(--li-green); }
+.review-warn .review-icon { background: #d97706; }
+.review-fail .review-icon { background: var(--li-red); }
+.review-content { flex: 1; }
+.review-title { font-weight: 600; }
+.review-detail { font-size: 12px; color: var(--li-text-secondary); margin-top: 2px; }
+
+/* Loading */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: var(--claude-orange-soft);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--claude-orange);
+  font-weight: 600;
+}
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--claude-orange);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite;
+}
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Visual preview placeholder */
+.visual-preview {
+  background: white;
+  border: 1px solid var(--li-border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.visual-preview svg { width: 100%; height: auto; display: block; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--li-text);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 200;
+  transition: transform 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Empty workspace */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--li-text-secondary);
+}
+
+/* Powered by Claude badge — used in modal subtitle */
+.powered-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--claude-orange);
+  font-weight: 600;
+  font-size: 11px;
+}
+.powered-badge svg { width: 11px; height: 11px; }
+
+/* Hide scrollbar styling for the workflow modal */
+.modal-body::-webkit-scrollbar { width: 8px; }
+.modal-body::-webkit-scrollbar-track { background: transparent; }
+.modal-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+
+/* --- Responsive: collapse sidebars below 1100px so the prototype works on most screens --- */
+@media (max-width: 1100px) {
+  .li-page { grid-template-columns: 1fr; max-width: 540px; }
+  .li-side-card.profile-card, .li-side-card.community-card, .news-side { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============= LinkedIn nav ============= -->
+<nav class="li-nav">
+  <div class="li-nav-inner">
+    <div class="li-logo">in</div>
+    <div class="li-search">Search</div>
+    <div class="li-nav-spacer"></div>
+    <div class="li-nav-item active"><span class="li-nav-icon">⌂</span>Home</div>
+    <div class="li-nav-item"><span class="li-nav-icon">👥</span>My Network</div>
+    <div class="li-nav-item"><span class="li-nav-icon">💼</span>Jobs</div>
+    <div class="li-nav-item"><span class="li-nav-icon">💬</span>Messaging</div>
+    <div class="li-nav-item"><span class="li-nav-icon">🔔</span>Notifications</div>
+  </div>
+</nav>
+
+<!-- ============= Page layout ============= -->
+<div class="li-page">
+
+  <!-- Left sidebar -->
+  <aside>
+    <div class="li-side-card profile-card">
+      <div class="profile-banner"></div>
+      <div class="profile-avatar">AM</div>
+      <div class="profile-name">Aarav Mehta</div>
+      <div class="profile-headline">GenAI Developer · Working on RAG systems · ML enthusiast</div>
+      <div class="profile-location">Bengaluru, Karnataka</div>
+      <div class="profile-divider"></div>
+      <div class="profile-stat">
+        <span class="profile-stat-label">Profile viewers</span>
+        <span class="profile-stat-value">82</span>
+      </div>
+      <div class="profile-stat">
+        <span class="profile-stat-label">Post impressions</span>
+        <span class="profile-stat-value">13</span>
+      </div>
+    </div>
+
+    <div class="li-side-card community-card" style="margin-top:8px;">
+      <div class="side-link-list">
+        <div class="side-link"><span class="side-link-icon">🔖</span>Saved items</div>
+        <div class="side-link"><span class="side-link-icon">👥</span>Groups</div>
+        <div class="side-link"><span class="side-link-icon">📰</span>Newsletters</div>
+        <div class="side-link"><span class="side-link-icon">📅</span>Events</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main feed -->
+  <main class="li-main">
+
+    <!-- Composer -->
+    <div class="composer">
+      <div class="composer-top">
+        <div class="composer-avatar">AM</div>
+        <div class="composer-input">Start a post</div>
+      </div>
+      <div class="composer-actions">
+        <button class="composer-action" data-type="video">
+          <span class="composer-action-icon">▶</span>
+          Video
+        </button>
+        <button class="composer-action" data-type="photo">
+          <span class="composer-action-icon">🖼</span>
+          Photo
+        </button>
+        <!-- The new partner-integrated 7 Days Series button -->
+        <button class="composer-action series-btn" data-type="series" id="seriesBtn">
+          <span class="composer-action-icon">📚</span>
+          7 Days Series
+          <span class="claude-footer">
+            <svg class="claude-glyph" viewBox="0 0 24 24" fill="currentColor"><path d="M4.7 21l5-13.4h2.6L17.3 21h-2.5l-1.2-3.4H8.4L7.2 21H4.7zm4.4-5.5h4l-2-5.5-2 5.5z"/></svg>
+            Powered by Claude
+          </span>
+        </button>
+        <button class="composer-action" data-type="article">
+          <span class="composer-action-icon">📝</span>
+          Write article
+        </button>
+      </div>
+    </div>
+
+    <!-- Feed posts (just for context, look like real LinkedIn) -->
+    <div class="feed-post">
+      <div class="post-header">
+        <div class="post-avatar" style="background:linear-gradient(135deg,#5e8ec4,#3b6ba6);">DA</div>
+        <div>
+          <div class="post-author">Darvesh Ahmed <span style="color:var(--li-text-secondary);font-weight:400;font-size:12px;">· 1st</span></div>
+          <div class="post-meta">LinkedIn Growth & Product Jobs Page Admin</div>
+          <div class="post-time">11h · 🌐</div>
+        </div>
+      </div>
+      <div class="post-body">🍉 101 Startups Are Hiring - Product Roles Open Now!</div>
+    </div>
+
+    <div class="feed-post">
+      <div class="post-header">
+        <div class="post-avatar" style="background:linear-gradient(135deg,#a87f5e,#7d5a3f);">AS</div>
+        <div>
+          <div class="post-author">Aryan Sharma <span style="color:var(--li-text-secondary);font-weight:400;font-size:12px;">· 1st</span></div>
+          <div class="post-meta">Product & Digital Strategy at IIFL Finance</div>
+          <div class="post-time">9h · 🌐</div>
+        </div>
+      </div>
+      <div class="post-body">Building products that move millions takes more than just a good roadmap. It takes obsession with the user.</div>
+    </div>
+
+  </main>
+
+  <!-- Right sidebar -->
+  <aside class="news-side">
+    <div class="li-side-card news-card">
+      <div class="news-title">LinkedIn News</div>
+      <div class="news-item">
+        India's top employers for long-term careers
+        <div class="news-item-meta">1d ago<span class="news-bullet"></span>13,786 readers</div>
+      </div>
+      <div class="news-item">
+        Top finance experts to follow
+        <div class="news-item-meta">1d ago<span class="news-bullet"></span>9,734 readers</div>
+      </div>
+      <div class="news-item">
+        Top tech &amp; startup experts to follow
+        <div class="news-item-meta">1d ago<span class="news-bullet"></span>5,354 readers</div>
+      </div>
+      <div class="news-item">
+        More women leaders get the top jobs
+        <div class="news-item-meta">1d ago<span class="news-bullet"></span>1,167 readers</div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ============= Modal: Series Setup ============= -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-title-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.7 21l5-13.4h2.6L17.3 21h-2.5l-1.2-3.4H8.4L7.2 21H4.7zm4.4-5.5h4l-2-5.5-2 5.5z"/></svg>
+        </div>
+        <div>
+          <div class="modal-title">Start a 7 Days Series</div>
+          <div class="modal-subtitle">
+            <span class="powered-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.7 21l5-13.4h2.6L17.3 21h-2.5l-1.2-3.4H8.4L7.2 21H4.7zm4.4-5.5h4l-2-5.5-2 5.5z"/></svg>
+              Powered by Claude
+            </span>
+            <span style="color:var(--li-text-tertiary);">·</span>
+            <span>Build credibility on a subtopic with 7 connected posts</span>
+          </div>
+        </div>
+      </div>
+      <button class="modal-close" data-close>×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="field-label">Topic</label>
+        <div class="field-help">A specific subtopic — narrow is better than broad</div>
+        <input type="text" class="field-input" id="topicInput" placeholder="e.g. RAG, vector databases, prompt engineering" />
+      </div>
+      <div class="field">
+        <label class="field-label">Your experience level</label>
+        <div class="field-help">Helps the series sound like you</div>
+        <input type="text" class="field-input" id="expInput" placeholder="e.g. just started working on it and have a side project" />
+      </div>
+      <div class="field">
+        <label class="field-label">Personal learnings</label>
+        <div class="field-help">What have you actually figured out? This is what makes the series authentic.</div>
+        <textarea class="field-textarea" id="learnInput" placeholder="Share a few things you've learned hands-on. The more specific, the better the drafts will be."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-footer-meta">All fields used to build your draft series</span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" data-close>Cancel</button>
+        <button class="btn btn-primary" id="generateSeriesBtn" disabled>Generate series</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============= Modal: Workspace ============= -->
+<div class="modal-overlay" id="workspaceModal">
+  <div class="modal" style="max-width: 720px;">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-title-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.7 21l5-13.4h2.6L17.3 21h-2.5l-1.2-3.4H8.4L7.2 21H4.7zm4.4-5.5h4l-2-5.5-2 5.5z"/></svg>
+        </div>
+        <div>
+          <div class="modal-title">My Series</div>
+          <div class="modal-subtitle">
+            <span class="powered-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.7 21l5-13.4h2.6L17.3 21h-2.5l-1.2-3.4H8.4L7.2 21H4.7zm4.4-5.5h4l-2-5.5-2 5.5z"/></svg>
+              Powered by Claude
+            </span>
+          </div>
+        </div>
+      </div>
+      <button class="modal-close" data-close>×</button>
+    </div>
+    <div class="modal-body">
+      <div class="series-tabs" id="seriesTabs"></div>
+      <div id="seriesContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============= Modal: Single Draft Workflow ============= -->
+<div class="modal-overlay" id="draftModal">
+  <div class="modal draft-workflow-modal">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-title-icon" style="background: var(--li-blue-light); color: var(--li-blue);">
+          <span style="font-weight:700;">D<span id="modalDraftNum">1</span></span>
+        </div>
+        <div>
+          <div class="modal-title" id="modalDraftTitle">Draft 1</div>
+          <div class="modal-subtitle">
+            <span class="powered-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.7 21l5-13.4h2.6L17.3 21h-2.5l-1.2-3.4H8.4L7.2 21H4.7zm4.4-5.5h4l-2-5.5-2 5.5z"/></svg>
+              Powered by Claude
+            </span>
+            <span style="color:var(--li-text-tertiary);">·</span>
+            <span id="modalDraftSeries">RAG series</span>
+          </div>
+        </div>
+      </div>
+      <button class="modal-close" data-close>×</button>
+    </div>
+    <div class="workflow-progress" id="workflowProgress"></div>
+    <div class="modal-body" id="workflowBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-text" data-close>Save &amp; close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+const state = {
+  series: [],   // Array of { id, topic, experience, learnings, drafts[] }
+  activeSeriesId: null,
+  activeDraftIdx: null,
+};
+
+// ============================================================
+// Sample arc generator — for the prototype, hardcode the RAG arc
+// and provide a reasonable fallback for any other topic.
+// ============================================================
+const RAG_ARC = [
+  { topic: "What RAG actually is — and what people get wrong about it", slot: "Foundation" },
+  { topic: "Why chunking strategy matters more than your embedding model", slot: "Specific lesson" },
+  { topic: "Dense vs hybrid retrieval: when to use which", slot: "Comparison / tradeoff" },
+  { topic: "A RAG system I shipped that failed — and what fixed it", slot: "Real failure / case study" },
+  { topic: "Most teams don't need a vector DB to ship RAG", slot: "Counterintuitive take" },
+  { topic: "How I separate retrieval quality from generation quality", slot: "Tool / workflow" },
+  { topic: "7 things I now believe about RAG after shipping it twice", slot: "Synthesis" },
+];
+
+const GENERIC_SLOTS = [
+  "Foundation",
+  "Specific lesson",
+  "Comparison / tradeoff",
+  "Real failure / case study",
+  "Counterintuitive take",
+  "Tool / workflow",
+  "Synthesis",
+];
+
+function generateArc(topic) {
+  const t = (topic || "").toLowerCase().trim();
+  if (t === "rag" || t === "rags") return JSON.parse(JSON.stringify(RAG_ARC));
+
+  // Fallback: build a generic arc using the topic
+  return GENERIC_SLOTS.map((slot, i) => ({
+    topic: makeGenericTitle(topic, slot, i),
+    slot,
+  }));
+}
+
+function makeGenericTitle(topic, slot, i) {
+  const titles = [
+    `What ${topic} actually is — and what people get wrong about it`,
+    `One thing I've learned about ${topic} the hard way`,
+    `Two approaches to ${topic}: when to use which`,
+    `A ${topic} project that didn't go as planned — and what I took from it`,
+    `An unpopular opinion about how teams approach ${topic}`,
+    `My current workflow for ${topic}, and why it's mostly simple`,
+    `7 things I now believe about ${topic} after working on it`,
+  ];
+  return titles[i];
+}
+
+// ============================================================
+// Sample post drafts — preloaded for the RAG arc to make the
+// demo feel real. Falls back to a generic template otherwise.
+// ============================================================
+const RAG_DRAFTS = {
+  1: `Most people I talk to think RAG is about embeddings and a vector database. It isn't.
+
+RAG is fundamentally a retrieval problem. The LLM is the easy part — the hard part is making sure the right context shows up in the right window at the right time.
+
+If your retrieval is bad, no amount of model upgrade fixes it. If your retrieval is good, even a small open-source model can produce useful answers.
+
+Two things that helped me reframe this:
+→ Treat retrieval as its own system with its own evaluation
+→ Stop optimizing the LLM call until retrieval is solid
+
+Curious how others think about this — do you treat retrieval and generation as separate problems, or as one pipeline?`,
+
+  2: `Spent two weekends optimizing my embedding model. Reranker, larger model, different provider. Marginal gains.
+
+Then I touched chunking. Within a day, my answer quality jumped more than every embedding change combined.
+
+Here's what nobody told me when I started:
+
+→ Fixed-size chunking is a baseline, not a default. It splits sentences mid-thought and ruins context.
+→ Semantic chunking (split on topic shifts) consistently outperformed fixed chunks in my tests.
+→ Overlap matters more than chunk size — 15-20% overlap saved a surprising number of edge cases.
+
+The lesson: if your retrieval is broken, look at how you're cutting up your documents before you look at how you're embedding them.
+
+What's your default chunking strategy? Curious what's working for others.`,
+
+  3: `Dense retrieval is the default. BM25 is "old school." Most tutorials skip hybrid retrieval entirely.
+
+But after shipping RAG twice, here's what I've found:
+
+Dense (embeddings):
+→ Strong on semantic similarity
+→ Weak on rare terms, product names, IDs
+→ Great when queries are paraphrased
+
+BM25 / keyword:
+→ Strong on exact matches and rare terms
+→ Weak on synonyms and intent shifts
+→ Surprisingly hard to beat on technical docs
+
+Hybrid (both, then rerank):
+→ Almost always outperformed either alone in my use cases
+→ Implementation cost is small. Ranking quality gain is not.
+
+If you're using only dense retrieval today, try adding BM25 with reciprocal rank fusion. The numbers usually surprise people.`,
+
+  4: `I shipped a RAG system at work that didn't work the way I expected.
+
+Users would ask a question. The system would confidently answer. The answer would be technically wrong but plausible-sounding. Worse, the cited sources looked correct on the surface.
+
+What was actually happening:
+→ Our chunker was splitting tables across chunks
+→ Half the table would get retrieved without its header row
+→ The LLM would generate fluent answers from incomplete data
+
+The fix wasn't a model upgrade or a better prompt. It was:
+→ Detecting tables before chunking
+→ Keeping each table as a single chunk
+→ Adding the surrounding section as context
+
+Three days of work. The hallucination rate dropped by more than half.
+
+Lesson: when RAG fails, the bug is almost never in the LLM. It's upstream.`,
+
+  5: `An unpopular take: most teams shipping RAG should not have started with a vector database.
+
+I've seen multiple projects where:
+→ The corpus was under 5,000 documents
+→ The query volume was low
+→ The team spent three weeks setting up Pinecone / Weaviate / Qdrant
+
+For that scale, a flat numpy index plus BM25 in memory would have shipped in 2 days and worked indistinguishably from a "real" vector DB.
+
+The vector database stack adds:
+→ Operational overhead
+→ Cost
+→ A new failure mode (sync between source and index)
+
+It's worth it past a threshold. Below that threshold, it's premature optimization.
+
+Ship the dumb version first. Move to a vector DB when retrieval quality or scale actually demands it — not because the tutorials say to.`,
+
+  6: `Most RAG evals collapse retrieval and generation into one number. That's a mistake.
+
+When my system gives a wrong answer, I want to know:
+→ Did we fail to retrieve the right context? (retrieval problem)
+→ Did we retrieve the right context but generate poorly? (generation problem)
+
+These need different fixes. Treating them as one number hides which one is broken.
+
+My current setup:
+→ Retrieval eval: For a set of test queries, did the right document end up in the top-K?
+→ Generation eval: Given the right context, does the model produce a correct answer?
+→ Run them separately. Track them separately.
+
+Most of my tooling is notebooks. Nothing fancy. The discipline of separating the two has caught more bugs than any specific tool I've used.
+
+What's your eval setup look like?`,
+
+  7: `Over the last 7 posts I've been writing about RAG. Here's what I now believe:
+
+→ RAG is a retrieval problem with a generation step on top — not the other way around
+→ Chunking strategy matters more than your embedding model
+→ Hybrid retrieval (dense + BM25) almost always beats either alone
+→ When RAG fails, the bug is almost never in the LLM
+→ Most teams should ship without a vector database first
+→ Retrieval quality and generation quality are separate problems with separate fixes
+→ The hardest part of RAG isn't the AI. It's the discipline.
+
+If you're working on RAG and any of this resonated — or if you disagree — reach out. I want to learn what you're seeing.
+
+(This was a 7-post series. Earlier posts in the comments.)`,
+};
+
+function getDraftPostText(seriesId, idx) {
+  const series = state.series.find(s => s.id === seriesId);
+  if (!series) return "";
+  const t = (series.topic || "").toLowerCase().trim();
+  if ((t === "rag" || t === "rags") && RAG_DRAFTS[idx + 1]) return RAG_DRAFTS[idx + 1];
+
+  // Generic fallback
+  const draft = series.drafts[idx];
+  return `Sharing some thoughts on "${draft.topic}".
+
+Based on my experience with ${series.topic}, here are a few things I've found useful:
+
+→ The first thing nobody tells you when you start
+→ A specific lesson from working on it hands-on
+→ Why I think most teams approach this wrong
+
+If you're working on something similar, would love to compare notes. What's been your experience?`;
+}
+
+// ============================================================
+// DOM helpers
+// ============================================================
+const $ = id => document.getElementById(id);
+
+function showModal(id) { $(id).classList.add("active"); }
+function hideModal(id) { $(id).classList.remove("active"); }
+function hideAllModals() { document.querySelectorAll(".modal-overlay").forEach(m => m.classList.remove("active")); }
+
+function showToast(msg) {
+  const t = $("toast");
+  t.textContent = "✓ " + msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+// ============================================================
+// Series setup
+// ============================================================
+$("seriesBtn").addEventListener("click", () => {
+  // If user already has series, show workspace; otherwise show setup
+  if (state.series.length === 0) {
+    $("topicInput").value = "";
+    $("expInput").value = "";
+    $("learnInput").value = "";
+    updateGenerateBtn();
+    showModal("setupModal");
+  } else {
+    renderWorkspace();
+    showModal("workspaceModal");
+  }
+});
+
+["topicInput", "expInput", "learnInput"].forEach(id => {
+  $(id).addEventListener("input", updateGenerateBtn);
+});
+
+function updateGenerateBtn() {
+  const topic = $("topicInput").value.trim();
+  const exp = $("expInput").value.trim();
+  const learn = $("learnInput").value.trim();
+  $("generateSeriesBtn").disabled = !(topic && exp && learn);
+}
+
+$("generateSeriesBtn").addEventListener("click", () => {
+  const topic = $("topicInput").value.trim();
+  const experience = $("expInput").value.trim();
+  const learnings = $("learnInput").value.trim();
+  if (!topic) return;
+
+  const arc = generateArc(topic);
+  const newSeries = {
+    id: Date.now(),
+    topic,
+    experience,
+    learnings,
+    drafts: arc.map((d, i) => ({
+      number: i + 1,
+      topic: d.topic,
+      slot: d.slot,
+      status: "not-started", // not-started | in-progress | ready | published
+      ideas: "",
+      references: [],
+      visualType: null,
+      postText: "",
+      reviewed: false,
+    })),
+  };
+  state.series.push(newSeries);
+  state.activeSeriesId = newSeries.id;
+
+  hideModal("setupModal");
+  showToast("Series created — 7 drafts ready");
+  setTimeout(() => {
+    renderWorkspace();
+    showModal("workspaceModal");
+  }, 100);
+});
+
+// ============================================================
+// Workspace
+// ============================================================
+function renderWorkspace() {
+  const tabsEl = $("seriesTabs");
+  const contentEl = $("seriesContent");
+
+  // Tabs
+  tabsEl.innerHTML = state.series.map(s => `
+    <div class="series-tab ${s.id === state.activeSeriesId ? "active" : ""}" data-series-id="${s.id}">
+      ${escapeHtml(s.topic)}
+    </div>
+  `).join("") + `
+    <div class="series-tab" data-action="new-series">
+      <span class="tab-add">+</span> New series
+    </div>
+  `;
+
+  tabsEl.querySelectorAll("[data-series-id]").forEach(el => {
+    el.addEventListener("click", () => {
+      state.activeSeriesId = parseInt(el.dataset.seriesId);
+      renderWorkspace();
+    });
+  });
+  tabsEl.querySelector("[data-action='new-series']").addEventListener("click", () => {
+    hideModal("workspaceModal");
+    $("topicInput").value = "";
+    $("expInput").value = "";
+    $("learnInput").value = "";
+    updateGenerateBtn();
+    setTimeout(() => showModal("setupModal"), 100);
+  });
+
+  // Content for active series
+  const active = state.series.find(s => s.id === state.activeSeriesId);
+  if (!active) {
+    contentEl.innerHTML = `<div class="empty-state">No series selected</div>`;
+    return;
+  }
+
+  const publishedCount = active.drafts.filter(d => d.status === "published").length;
+  const readyCount = active.drafts.filter(d => d.status === "ready").length;
+  const inProgCount = active.drafts.filter(d => d.status === "in-progress").length;
+
+  contentEl.innerHTML = `
+    <div class="workspace-header">
+      <div class="workspace-meta">
+        <span class="workspace-meta-item"><strong>${publishedCount}</strong> published</span>
+        <span class="workspace-meta-item"><strong>${readyCount}</strong> ready</span>
+        <span class="workspace-meta-item"><strong>${inProgCount}</strong> in progress</span>
+        <span class="workspace-meta-item"><strong>${7 - publishedCount - readyCount - inProgCount}</strong> not started</span>
+      </div>
+    </div>
+    <div class="draft-grid">
+      ${active.drafts.map((d, idx) => `
+        <div class="draft-card" data-draft-idx="${idx}">
+          <div class="draft-num">D${d.number}</div>
+          <div class="draft-info">
+            <div class="draft-title">${escapeHtml(d.topic)}</div>
+            <div class="draft-status-row">
+              <span>${escapeHtml(d.slot)}</span>
+              <span style="color:var(--li-text-tertiary)">·</span>
+              ${statusPill(d.status)}
+            </div>
+          </div>
+          <div class="draft-arrow">›</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+
+  contentEl.querySelectorAll(".draft-card").forEach(el => {
+    el.addEventListener("click", () => {
+      const idx = parseInt(el.dataset.draftIdx);
+      openDraft(idx);
+    });
+  });
+}
+
+function statusPill(status) {
+  const map = {
+    "not-started": ["status-not-started", "Not started"],
+    "in-progress": ["status-in-progress", "In progress"],
+    "ready": ["status-ready", "Ready to review"],
+    "published": ["status-published", "Published"],
+  };
+  const [cls, label] = map[status];
+  return `<span class="status-pill ${cls}">${label}</span>`;
+}
+
+// ============================================================
+// Single draft workflow
+// ============================================================
+function openDraft(idx) {
+  state.activeDraftIdx = idx;
+  const series = state.series.find(s => s.id === state.activeSeriesId);
+  const draft = series.drafts[idx];
+
+  $("modalDraftNum").textContent = draft.number;
+  $("modalDraftTitle").textContent = `Draft ${draft.number}: ${draft.topic}`;
+  $("modalDraftSeries").textContent = `${series.topic} series`;
+
+  hideModal("workspaceModal");
+  setTimeout(() => {
+    renderWorkflow();
+    showModal("draftModal");
+  }, 100);
+}
+
+function renderWorkflow() {
+  const series = state.series.find(s => s.id === state.activeSeriesId);
+  const draft = series.drafts[state.activeDraftIdx];
+
+  // Progress bar — 9 segments
+  const stepsComplete = computeStepsComplete(draft);
+  $("workflowProgress").innerHTML = Array.from({length: 9}, (_, i) => {
+    const cls = i < stepsComplete ? "complete" : (i === stepsComplete ? "active" : "");
+    return `<div class="progress-step ${cls}"></div>`;
+  }).join("");
+
+  const isPublished = draft.status === "published";
+
+  $("workflowBody").innerHTML = `
+    <!-- Step 1: Change topic -->
+    <div class="workflow-section">
+      <div class="section-header" data-toggle="step1">
+        <div class="section-num ${draft.topic !== series.drafts[state.activeDraftIdx].topic ? "" : ""}">1</div>
+        <div class="section-info">
+          <div class="section-title">Change topic</div>
+          <div class="section-help">The topic was auto-generated. You can override it if you want.</div>
+        </div>
+        <span class="section-tag optional">Optional</span>
+      </div>
+      <div class="section-body" id="body-step1">
+        <input type="text" class="field-input" id="topicEdit" value="${escapeHtml(draft.topic)}" />
+        <button class="btn btn-secondary" id="saveTopicBtn" style="margin-top:8px;">Update topic</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Add ideas -->
+    <div class="workflow-section">
+      <div class="section-header" data-toggle="step2">
+        <div class="section-num ${draft.ideas ? "complete" : ""}">2</div>
+        <div class="section-info">
+          <div class="section-title">Add your ideas</div>
+          <div class="section-help">Type or paste any thoughts you want this post to include. Skip if you don't have any yet.</div>
+        </div>
+        <span class="section-tag optional">Optional</span>
+      </div>
+      <div class="section-body" id="body-step2">
+        <textarea class="field-textarea" id="ideasInput" placeholder="A specific story, lesson, opinion, or angle you want this post to cover...">${escapeHtml(draft.ideas)}</textarea>
+        <button class="btn btn-secondary" id="saveIdeasBtn" style="margin-top:8px;">Save ideas</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Add references -->
+    <div class="workflow-section">
+      <div class="section-header" data-toggle="step3">
+        <div class="section-num ${draft.references.length > 0 ? "complete" : ""}">3</div>
+        <div class="section-info">
+          <div class="section-title">Add references</div>
+          <div class="section-help">Paste links to papers, articles, or docs that back up your post.</div>
+        </div>
+        <span class="section-tag optional">Optional</span>
+      </div>
+      <div class="section-body" id="body-step3">
+        <div class="references-list" id="referencesList"></div>
+        <button class="add-ref-btn" id="addRefBtn">+ Add another reference</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Create visuals -->
+    <div class="workflow-section">
+      <div class="section-header" data-toggle="step4">
+        <div class="section-num ${draft.visualType ? "complete" : ""}">4</div>
+        <div class="section-info">
+          <div class="section-title">Create visuals</div>
+          <div class="section-help">Pick one — Claude will generate it from your post content.</div>
+        </div>
+        <span class="section-tag optional">Optional</span>
+      </div>
+      <div class="section-body" id="body-step4">
+        <div class="visual-options" id="visualOptions">
+          <div class="visual-option ${draft.visualType === "flowchart" ? "selected" : ""}" data-visual="flowchart">
+            <span class="visual-icon">⇥</span>
+            Flowchart
+          </div>
+          <div class="visual-option ${draft.visualType === "comparison" ? "selected" : ""}" data-visual="comparison">
+            <span class="visual-icon">⇄</span>
+            Comparison table
+          </div>
+          <div class="visual-option ${draft.visualType === "image" ? "selected" : ""}" data-visual="image">
+            <span class="visual-icon">🖼</span>
+            Concept image
+          </div>
+          <div class="visual-option ${draft.visualType === "none" ? "selected" : ""}" data-visual="none">
+            <span class="visual-icon">∅</span>
+            No visual
+          </div>
+        </div>
+        <div id="visualPreview"></div>
+      </div>
+    </div>
+
+    <!-- Step 5: Articulate (REQUIRED) -->
+    <div class="workflow-section">
+      <div class="section-header">
+        <div class="section-num ${draft.postText ? "complete" : "active"}">5</div>
+        <div class="section-info">
+          <div class="section-title">Articulate — generate the post</div>
+          <div class="section-help">Claude pulls everything above together into a finished draft in your voice.</div>
+        </div>
+        <span class="section-tag required">Required</span>
+      </div>
+      <div class="section-body always-on">
+        <div class="generate-btn-wrapper">
+          <button class="generate-btn" id="generatePostBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4.7 21l5-13.4h2.6L17.3 21h-2.5l-1.2-3.4H8.4L7.2 21H4.7zm4.4-5.5h4l-2-5.5-2 5.5z"/></svg>
+            ${draft.postText ? "Regenerate post" : "Generate post with Claude"}
+          </button>
+        </div>
+        <div id="generationStatus"></div>
+      </div>
+    </div>
+
+    <!-- Step 6: Post created -->
+    <div class="workflow-section" ${draft.postText ? "" : "style='opacity:0.4; pointer-events:none;'"}>
+      <div class="section-header">
+        <div class="section-num ${draft.postText ? "complete" : ""}">6</div>
+        <div class="section-info">
+          <div class="section-title">Post created</div>
+          <div class="section-help">Your draft is ready to review.</div>
+        </div>
+      </div>
+      ${draft.postText ? `<div class="section-body always-on">
+        <div class="draft-output" id="draftOutput">${escapeHtml(draft.postText)}</div>
+      </div>` : ""}
+    </div>
+
+    <!-- Step 7: Edit -->
+    <div class="workflow-section" ${draft.postText ? "" : "style='opacity:0.4; pointer-events:none;'"}>
+      <div class="section-header" data-toggle="step7">
+        <div class="section-num">7</div>
+        <div class="section-info">
+          <div class="section-title">Edit (optional)</div>
+          <div class="section-help">Make any manual changes you want.</div>
+        </div>
+        <span class="section-tag optional">Optional</span>
+      </div>
+      <div class="section-body" id="body-step7">
+        <textarea class="draft-edit" id="draftEdit">${escapeHtml(draft.postText)}</textarea>
+        <button class="btn btn-secondary" id="saveEditBtn" style="margin-top:8px;">Save edits</button>
+      </div>
+    </div>
+
+    <!-- Step 8: Pre-publish review (REQUIRED) -->
+    <div class="workflow-section" ${draft.postText ? "" : "style='opacity:0.4; pointer-events:none;'"}>
+      <div class="section-header">
+        <div class="section-num ${draft.reviewed ? "complete" : (draft.postText ? "active" : "")}">8</div>
+        <div class="section-info">
+          <div class="section-title">Pre-publish review</div>
+          <div class="section-help">Authenticity, confidentiality, quality, and citations.</div>
+        </div>
+        <span class="section-tag required">Required</span>
+      </div>
+      <div class="section-body always-on">
+        ${draft.postText ? `<button class="btn btn-secondary" id="runReviewBtn">${draft.reviewed ? "Re-run review" : "Run review"}</button>
+        <div id="reviewResults" style="margin-top:12px;"></div>` : ""}
+      </div>
+    </div>
+
+    <!-- Step 9: Publish -->
+    <div class="workflow-section" ${draft.reviewed ? "" : "style='opacity:0.4; pointer-events:none;'"}>
+      <div class="section-header">
+        <div class="section-num ${isPublished ? "complete" : ""}">9</div>
+        <div class="section-info">
+          <div class="section-title">Final changes and publish</div>
+          <div class="section-help">When you're happy, post it to LinkedIn.</div>
+        </div>
+        <span class="section-tag required">Required</span>
+      </div>
+      <div class="section-body always-on">
+        ${isPublished ? `
+          <div class="review-item review-pass">
+            <div class="review-icon">✓</div>
+            <div class="review-content">
+              <div class="review-title">Published to LinkedIn</div>
+              <div class="review-detail">This draft is live on your profile.</div>
+            </div>
+          </div>
+        ` : `
+          <button class="btn btn-primary" id="publishBtn" ${draft.reviewed ? "" : "disabled"}>Publish now</button>
+        `}
+      </div>
+    </div>
+  `;
+
+  attachWorkflowListeners(draft, series);
+  renderReferences(draft);
+}
+
+function computeStepsComplete(draft) {
+  let n = 0;
+  // Step 1 is "always available", count as completed once draft exists
+  n++; // step 1 is implicit — topic is set
+  if (draft.ideas) n++;
+  if (draft.references.length > 0) n++;
+  if (draft.visualType) n++;
+  if (draft.postText) n++;       // step 5
+  if (draft.postText) n++;       // step 6
+  if (draft.postText) n++;       // step 7
+  if (draft.reviewed) n++;       // step 8
+  if (draft.status === "published") n++;
+  return n;
+}
+
+function renderReferences(draft) {
+  const list = $("referencesList");
+  if (!list) return;
+  if (draft.references.length === 0) draft.references = [""];
+  list.innerHTML = draft.references.map((ref, i) => `
+    <div class="reference-row">
+      <input type="text" class="field-input" value="${escapeHtml(ref)}" data-ref-idx="${i}" placeholder="Paste a link..." />
+      <button class="btn btn-secondary" data-remove-ref="${i}" style="padding:6px 10px;">×</button>
+    </div>
+  `).join("");
+  list.querySelectorAll("input[data-ref-idx]").forEach(input => {
+    input.addEventListener("change", () => {
+      const i = parseInt(input.dataset.refIdx);
+      draft.references[i] = input.value;
+    });
+  });
+  list.querySelectorAll("[data-remove-ref]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = parseInt(btn.dataset.removeRef);
+      draft.references.splice(i, 1);
+      renderReferences(draft);
+    });
+  });
+}
+
+function attachWorkflowListeners(draft, series) {
+  // Toggle sections
+  document.querySelectorAll("[data-toggle]").forEach(header => {
+    header.addEventListener("click", () => {
+      const id = "body-" + header.dataset.toggle;
+      const body = document.getElementById(id);
+      if (body) body.classList.toggle("open");
+    });
+  });
+
+  // Step 1: change topic
+  const saveTopicBtn = $("saveTopicBtn");
+  if (saveTopicBtn) saveTopicBtn.addEventListener("click", () => {
+    draft.topic = $("topicEdit").value.trim() || draft.topic;
+    showToast("Topic updated");
+    renderWorkflow();
+  });
+
+  // Step 2: ideas
+  const saveIdeasBtn = $("saveIdeasBtn");
+  if (saveIdeasBtn) saveIdeasBtn.addEventListener("click", () => {
+    draft.ideas = $("ideasInput").value.trim();
+    if (draft.status === "not-started" && draft.ideas) draft.status = "in-progress";
+    showToast("Ideas saved");
+    renderWorkflow();
+  });
+
+  // Step 3: add reference
+  const addRefBtn = $("addRefBtn");
+  if (addRefBtn) addRefBtn.addEventListener("click", () => {
+    draft.references.push("");
+    renderReferences(draft);
+  });
+
+  // Step 4: visual
+  const visualOptions = $("visualOptions");
+  if (visualOptions) visualOptions.querySelectorAll(".visual-option").forEach(opt => {
+    opt.addEventListener("click", () => {
+      const type = opt.dataset.visual;
+      draft.visualType = type;
+      visualOptions.querySelectorAll(".visual-option").forEach(o => o.classList.remove("selected"));
+      opt.classList.add("selected");
+
+      if (type === "none") {
+        $("visualPreview").innerHTML = "";
+      } else {
+        $("visualPreview").innerHTML = `<div class="loading-state"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>Generating ${type}...</div>`;
+        setTimeout(() => {
+          $("visualPreview").innerHTML = `
+            <div class="visual-preview">${getVisualSVG(type, draft, series)}</div>
+          `;
+        }, 1400);
+      }
+    });
+  });
+
+  // Step 5: generate post
+  const genBtn = $("generatePostBtn");
+  if (genBtn) genBtn.addEventListener("click", () => {
+    $("generationStatus").innerHTML = `
+      <div class="loading-state" style="margin-top:12px;">
+        <div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>
+        Claude is writing your post in your voice...
+      </div>`;
+    setTimeout(() => {
+      const idx = state.activeDraftIdx;
+      draft.postText = getDraftPostText(state.activeSeriesId, idx);
+      draft.status = "ready";
+      draft.reviewed = false;
+      showToast("Draft generated");
+      renderWorkflow();
+    }, 1800);
+  });
+
+  // Step 7: save edits
+  const saveEditBtn = $("saveEditBtn");
+  if (saveEditBtn) saveEditBtn.addEventListener("click", () => {
+    draft.postText = $("draftEdit").value;
+    draft.reviewed = false; // edits invalidate prior review
+    showToast("Edits saved");
+    renderWorkflow();
+  });
+
+  // Step 8: review
+  const reviewBtn = $("runReviewBtn");
+  if (reviewBtn) reviewBtn.addEventListener("click", () => {
+    $("reviewResults").innerHTML = `
+      <div class="loading-state"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>Running 4 checks...</div>`;
+    setTimeout(() => {
+      $("reviewResults").innerHTML = `
+        <div class="review-results">
+          <div class="review-item review-pass">
+            <div class="review-icon">✓</div>
+            <div class="review-content">
+              <div class="review-title">Authenticity check passed</div>
+              <div class="review-detail">No AI-style phrasing detected. Sounds like your prior writing.</div>
+            </div>
+          </div>
+          <div class="review-item review-pass">
+            <div class="review-icon">✓</div>
+            <div class="review-content">
+              <div class="review-title">Confidentiality check passed</div>
+              <div class="review-detail">No internal project names or sensitive details flagged.</div>
+            </div>
+          </div>
+          <div class="review-item review-warn">
+            <div class="review-icon">!</div>
+            <div class="review-content">
+              <div class="review-title">Quality tip</div>
+              <div class="review-detail">Your opening line could hook harder. Consider leading with the contrarian point.</div>
+            </div>
+          </div>
+          <div class="review-item review-pass">
+            <div class="review-icon">✓</div>
+            <div class="review-content">
+              <div class="review-title">Citations look fine</div>
+              <div class="review-detail">Claims are framed as your experience, not as universal facts.</div>
+            </div>
+          </div>
+        </div>
+      `;
+      draft.reviewed = true;
+      renderWorkflow();
+    }, 1500);
+  });
+
+  // Step 9: publish
+  const publishBtn = $("publishBtn");
+  if (publishBtn) publishBtn.addEventListener("click", () => {
+    publishBtn.textContent = "Publishing...";
+    publishBtn.disabled = true;
+    setTimeout(() => {
+      draft.status = "published";
+      showToast("Published to LinkedIn");
+      renderWorkflow();
+    }, 1200);
+  });
+}
+
+// ============================================================
+// Visual generation samples
+// ============================================================
+function getVisualSVG(type, draft, series) {
+  if (type === "flowchart") {
+    return `
+      <svg viewBox="0 0 600 200" style="max-width:100%;">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M2 1 L8 5 L2 9" fill="none" stroke="#666" stroke-width="1.5"/>
+          </marker>
+        </defs>
+        <rect x="20" y="70" width="120" height="60" rx="8" fill="#f4ddd0" stroke="#cc785c" stroke-width="1"/>
+        <text x="80" y="105" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#7a3e1c">Query</text>
+        <line x1="140" y1="100" x2="180" y2="100" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+        <rect x="180" y="70" width="120" height="60" rx="8" fill="#e8f0fb" stroke="#0a66c2" stroke-width="1"/>
+        <text x="240" y="105" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#0a4382">Retrieval</text>
+        <line x1="300" y1="100" x2="340" y2="100" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+        <rect x="340" y="70" width="120" height="60" rx="8" fill="#e8f0fb" stroke="#0a66c2" stroke-width="1"/>
+        <text x="400" y="98" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#0a4382">Generation</text>
+        <text x="400" y="115" text-anchor="middle" font-family="system-ui" font-size="11" fill="#0a4382">(LLM)</text>
+        <line x1="460" y1="100" x2="500" y2="100" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+        <rect x="500" y="70" width="80" height="60" rx="8" fill="#dcfce7" stroke="#057642" stroke-width="1"/>
+        <text x="540" y="105" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#054828">Answer</text>
+      </svg>
+    `;
+  }
+  if (type === "comparison") {
+    return `
+      <svg viewBox="0 0 600 220" style="max-width:100%;">
+        <text x="300" y="22" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#222">Dense vs Hybrid retrieval</text>
+
+        <rect x="40" y="44" width="240" height="160" rx="8" fill="#e8f0fb" stroke="#0a66c2" stroke-width="1"/>
+        <text x="160" y="68" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#0a4382">Dense only</text>
+        <text x="60" y="98" font-family="system-ui" font-size="12" fill="#222">✓ Strong on semantics</text>
+        <text x="60" y="120" font-family="system-ui" font-size="12" fill="#222">✓ Handles paraphrasing</text>
+        <text x="60" y="142" font-family="system-ui" font-size="12" fill="#a31010">✗ Weak on rare terms</text>
+        <text x="60" y="164" font-family="system-ui" font-size="12" fill="#a31010">✗ Misses exact matches</text>
+
+        <rect x="320" y="44" width="240" height="160" rx="8" fill="#f4ddd0" stroke="#cc785c" stroke-width="1"/>
+        <text x="440" y="68" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#7a3e1c">Hybrid (dense + BM25)</text>
+        <text x="340" y="98" font-family="system-ui" font-size="12" fill="#222">✓ Strong on semantics</text>
+        <text x="340" y="120" font-family="system-ui" font-size="12" fill="#222">✓ Strong on rare terms</text>
+        <text x="340" y="142" font-family="system-ui" font-size="12" fill="#222">✓ Better for tech docs</text>
+        <text x="340" y="164" font-family="system-ui" font-size="12" fill="#057642" font-weight="600">→ Recommended default</text>
+      </svg>
+    `;
+  }
+  if (type === "image") {
+    return `
+      <svg viewBox="0 0 600 220" style="max-width:100%;">
+        <rect x="0" y="0" width="600" height="220" fill="#fafaf9"/>
+        <text x="300" y="30" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#666">Concept image preview</text>
+
+        <circle cx="150" cy="120" r="50" fill="#f4ddd0" stroke="#cc785c" stroke-width="2"/>
+        <text x="150" y="125" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#7a3e1c">Documents</text>
+
+        <line x1="200" y1="120" x2="260" y2="120" stroke="#666" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+        <rect x="260" y="80" width="100" height="80" rx="8" fill="#e8f0fb" stroke="#0a66c2" stroke-width="2"/>
+        <text x="310" y="115" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#0a4382">Embeddings</text>
+        <text x="310" y="135" text-anchor="middle" font-family="system-ui" font-size="11" fill="#0a4382">+ chunks</text>
+
+        <line x1="360" y1="120" x2="420" y2="120" stroke="#666" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+        <circle cx="470" cy="120" r="50" fill="#dcfce7" stroke="#057642" stroke-width="2"/>
+        <text x="470" y="125" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="600" fill="#054828">Answer</text>
+      </svg>
+    `;
+  }
+  return "";
+}
+
+// ============================================================
+// Modal close
+// ============================================================
+document.querySelectorAll("[data-close]").forEach(el => {
+  el.addEventListener("click", () => hideAllModals());
+});
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) hideAllModals();
+  });
+});
+
+// ============================================================
+// Utility
+// ============================================================
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+</script>
+</body>
+</html>
